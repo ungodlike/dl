@@ -1,0 +1,56 @@
+def prediction(row,weights):
+  activation=weights[0]
+  for i in range(len(row)-1):
+    activation += weights[i+1]*row[i]
+  return 1.0 if activation >=0.0 else 0.0
+
+def train_weights(data,lrate,epoch):
+  weights=[0.0 for i in range(len(data[0]))]
+  for epoch in range(epoch):
+    sum_error=0
+    for row in data:
+      pred=prediction(row,weights)
+      error= row[-1] - pred
+      sum_error += error**2
+      weights[0]+= lrate *error
+      for i in range(len(row)-1):
+        weights[i+1] += (lrate * error * row[i])
+    print('>epoch = %d , lrate = % 3.f, error = %.3f'%(epoch,lrate,sum_error))
+    print(weights)
+  return(weights)
+
+#AND gate
+data=[[0,0,0,0],[0,0,1,0],[0,1,0,0],[0,1,1,0],[1,0,0,0],[1,1,0,0],[1,0,1,0],[1,1,1,1]]
+lrate=0.1
+epoch=5
+weights= train_weights(data,lrate,epoch)
+print(weights)
+
+
+
+for rows in data:
+  print(len(rows))
+  pred=prediction(rows,weights)
+  print("Expected : %d ,  Predicted : %d" % (rows[-1], pred))
+
+#OR gate
+data=[[0,0,0,0],[0,0,1,1],[0,1,0,1],[0,1,1,1],[1,0,0,1],[1,1,0,1],[1,0,1,1],[1,1,1,1]]
+lrate=0.1
+epoch=5
+weights=train_weights(data,lrate,epoch)
+print(weights)
+
+for rows in data:
+  pred=prediction(rows,weights)
+  print("Expected : %d ,  Predicted : %d" % (rows[-1], pred))
+
+#XOR gate
+data=[[0,0,0],[0,1,1],[1,0,1],[1,1,0]]
+lrate=0.1
+epoch=5
+weights=train_weights(data,lrate,epoch)
+print(weights)
+
+for rows in data:
+  pred=prediction(rows,weights)
+  print("Expected : %d ,  Predicted : %d" % (rows[-1], pred))

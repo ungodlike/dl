@@ -1,0 +1,158 @@
+import os 
+import cv2
+import pickle 
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns 
+from tqdm import tqdm 
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics import confusion_matrix
+from keras.models import Model, load_model
+from keras.layers import Dense, Input, Conv2D, MaxPool2D, Flatten
+from keras.preprocessing.image import ImageDataGenerator
+
+np.random.seed(22)
+
+def load_normal(norm_path):
+    norm_files = np.array(os.listdir(norm_path))
+    norm_labels = np.array(['normal'] * len(norm_files)
+    
+    norm_images = []
+    for image in tqdm(norm_files):
+        image = cv2.imread(norm_path + '/' + image)
+        image = cv2.resize(image, dsize=(200, 200))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        norm_images.append(image)
+    
+    norm_images = np.array(norm_images)
+    
+    return norm_images, norm_labels
+
+def load_pneumonia(pneu_path):
+    pneu_files = os.listdir(pneu_path)
+    pneu_labels = [pneu_file.split('-')[1] if '-' in pneu_file else 'unknown' for pneu_file in pneu_files]
+    
+    pneu_images = []
+    for image_name in tqdm(pneu_files):
+        image_path = os.path.join(pneu_path, image_name)
+        if os.path.isfile(image_path):
+            image = cv2.imread(image_path)
+            if image is not None:
+                image = cv2.resize(image, dsize=(200, 200))
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                pneu_images.append(image)
+    
+    pneu_images = np.array(pneu_images)
+    
+    return pneu_images, pneu_labels
+
+norm_images, norm_labels = load_normal('/content/drive/MyDrive/Lungs/train/NORMAL')
+pneu_images, pneu_labels = load_pneumonia('/content/drive/MyDrive/Lungs/train/PNEUMONIA')
+  
+X_train = np.append(norm_images, pneu_images, axis=0)
+y_train = np.append(norm_labels, pneu_labels)
+
+fig, axes = plt.subplots(ncols=7, nrows=2, figsize=(16, 4))
+
+indices = np.random.choice(len(X_train), 14)
+counter = 0
+
+for i in range(2):
+    for j in range(7):
+        axes[i, j].set_title(y_train[indices[counter])
+        axes[i, j].imshow(X_train[indices[counter], cmap='gray')
+        axes[i, j].get_xaxis().set_visible(False)
+        axes[i, j].get_yaxis().set_visible(False)
+        counter += 1
+
+plt.show()
+
+norm_images_test, norm_labels_test = load_normal('/content/drive/MyDrive/Lungs/train/NORMAL')
+pneu_images_test, pneu_labels_test = load_pneumonia('/content/drive/MyDrive/Lungs/train/PNEUMONIA/')
+X_test = np.append(norm_images_test, pneu_images_test, axis=0)
+y_test = np.append(norm_labels_test, pneu_labels_test)
+
+# Use this to save variables
+with open('pneumonia_data.pickle', 'wb') as f:
+    pickle.dump((X_train, X_test, y_train, y_test), f)
+# Use this to load variables
+with open('pneumonia_data.pickle', 'rb') as f:
+    (X_train, X_test, y_train, y_test) = pickle.load(f)
+
+# Reshape y_train and y_test
+y_train_reshaped = y_train.reshape(-1, 1)
+y_test_reshaped = y_test.reshape(-1, 1)
+
+# Apply OneHotEncoder
+one_hot_encoder = OneHotEncoder(sparse=False)
+y_train_one_hot = one_hot_encoder.fit_transform(y_train_reshaped)
+y_test_one_hot = one_hot_encoder.transform(y_test_reshaped)
+
+print(y_train_one_hot)
+print(y_test_one_hot)
+
+X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], X_train.shape[2], 1)
+X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], X_test.shape[2], 1)
+
+datagen = ImageDataGenerator(
+        rotation_range=10,
+        zoom_range=0.1,
+        width_shift_range=0.1,
+        height_shift_range=0.1
+)
+
+datagen.fit(X_train)
+train_gen = datagen.flow(X_train, y_train_one_hot, batch_size=32)
+
+input1 = Input(shape=(X_train.shape[1], X_train.shape[2], 1))
+
+cnn = Conv2D(16, (3, 3), activation='relu', strides=(1, 1),
+    padding='same')(input1)
+cnn = Conv2D(32, (3, 3), activation='relu', strides=(1, 1),
+    padding='same')(cnn)
+cnn = MaxPool2D((2, 2))(cnn)
+
+cnn = Conv2D(16, (2, 2), activation='relu', strides=(1, 1),
+    padding='same')(cnn)
+cnn = Conv2D(32, (2, 2), activation='relu', strides=(1, 1),
+    padding='same')(cnn)
+cnn = MaxPool2D((2, 2))(cnn)
+
+cnn = Flatten()(cnn)
+cnn = Dense(100, activation='relu')(cnn)
+cnn = Dense(50, activation='relu')(cnn)
+output1 = Dense(2, activation='softmax')(cnn)
+
+model = Model(inputs=input1, outputs=output1)
+
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['acc'])
+
+history = model.fit(train_gen, epochs=10,
+          validation_data=(X_test, y_test_one_hot))
+
+plt.figure(figsize=(8, 6))
+plt.title('Accuracy scores')
+plt.plot(history.history['acc'])
+plt.plot(history.history['val_acc'], linestyle='dashed')
+plt.legend(['acc', 'val_acc'])
+plt.show()
+
+plt.figure(figsize=(8, 6))
+plt.title("Loss value")
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'], linestyle='dashed')
+plt.legend(['loss', 'val_loss'])
+plt.show()
+
+predictions = model.predict(X_test)
+predictions = one_hot_encoder.inverse_transform(predictions)
+cm = confusion_matrix(y_test, predictions)
+
+classnames = ['bacteria', 'normal', 'virus']
+plt.figure(figsize=(8, 8))
+plt.title('Confusion matrix')
+
+sns.heatmap(cm, cbar=False, xticklabels=classnames, yticklabels=classnames, fmt='d', annot=True, cmap=plt.cm.Blues)
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()

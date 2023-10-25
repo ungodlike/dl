@@ -1,0 +1,39 @@
+import numpy as np
+import pandas as pd
+import matplotlib. pyplot as pit
+from sklearn.model_selection import train_test_split
+import tensorflow as tf
+from tensorflow import keras
+df = pd.read_csv("/content/Sonar (1).csv")
+df.head()
+
+df.isna().sum()
+df["Class"].value_counts()
+
+X = df.drop("Class", axis=1)
+y = df["Class"]
+print(y)
+
+
+y = pd.get_dummies(y, drop_first=True)
+y.head()
+
+y.value_counts()
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=1)
+X_train.shape, X_test.shape, y_train.shape, y_test.shape
+
+model = keras.Sequential([
+    keras.layers.Dense(60, input_dim=60, activation="relu"),
+    keras.layers.Dense(30, activation="relu"),
+    keras.layers.Dense(15, activation="relu"),
+    keras.layers.Dense(1, activation="sigmoid"),
+])
+
+model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
+model.fit(X_train, y_train, epochs=100, batch_size=0)
+
+model.evaluate(X_test, y_test)
+y_pred = model.predict(X_test)
+print(np.round(y_pred[:10]))
+print(y_test[:10])

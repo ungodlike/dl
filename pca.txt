@@ -1,0 +1,79 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_breast_cancer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
+
+
+# Step 1: Load Breast Cancer Dataset
+data = load_breast_cancer()
+X = data.data
+y = data.target
+
+# Step 2: Print shape and first few rows
+print("Shape of the dataset:", X.shape)
+print("First few rows of the dataset:\n", pd.DataFrame(X, columns=data.feature_names).head())
+
+# Step 3: Define features and target
+features = X
+target = y
+
+# Step 4: Print feature names
+print("Feature names:\n", data.feature_names)
+
+# Step 5: Use StandardScaler() to transform the input
+scaler = StandardScaler()
+scaled_features = scaler.fit_transform(features)
+
+# Step 6: Print mean and std of the transformed input
+print("Mean of the transformed input:", np.mean(scaled_features))
+print("Standard deviation of the transformed input:", np.std(scaled_features))
+
+# Step 7: Calculate the covariance matrix
+cov_matrix = np.cov(scaled_features.T)
+
+# Step 8: Calculate eigenvalues and eigenvectors
+eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+
+# Step 9: Sort eigenvalues and corresponding eigenvectors in descending order
+sorted_indices = np.argsort(eigenvalues)[::-1]
+sorted_eigenvalues = eigenvalues[sorted_indices]
+sorted_eigenvectors = eigenvectors[:, sorted_indices]
+
+# Step 10: Define the number of principal components as 2
+n_components = 2
+
+# Step 11: Select the top k eigenvectors
+selected_eigenvectors = sorted_eigenvectors[:, :n_components]
+
+# Step 12: Project the data onto the selected eigenvectors
+principal_components = np.dot(scaled_features, selected_eigenvectors)
+
+# Step 13: Visualize the data with target labels
+plt.scatter(principal_components[:, 0], principal_components[:, 1], c=target, cmap='viridis')
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.title("Breast Cancer Dataset with PCA")
+plt.colorbar(label="Target")
+plt.show()
+
+# Step 14: Divide the dataset into training set and testing set (0.33)
+X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.33, random_state=42)
+
+# Step 15: Build neural networks for dataset without PCA and with PCA
+# Without PCA
+model_without_pca = MLPClassifier(hidden_layer_sizes=(500, 500), activation='relu', random_state=42)
+
+# With PCA
+model_with_pca = MLPClassifier(hidden_layer_sizes=(500, 500), activation='relu', random_state=42)
+
+# Step 16: Fit and evaluate the models
+model_without_pca.fit(X_train, y_train)
+accuracy_without_pca = model_without_pca.score(X_test, y_test)
+print("Accuracy without PCA:", accuracy_without_pca)
+
+model_with_pca.fit(principal_components, target)
+accuracy_with_pca = model_with_pca.score(np.dot(X_test, selected_eigenvectors), y_test)
+print("Accuracy with PCA:", accuracy_with_pca)

@@ -1,0 +1,52 @@
+import numpy as np
+
+def threshold (x):
+  if x>1:
+    return 1
+  else:
+    return 0
+
+# Input datasets
+inputs = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+expected_output = np.array([[0], [1], [1], [0]])
+
+# Random weights and bias initialization
+hidden_weights = np.array([[1, -1], [-1, 1]])
+hidden_bias = np.array([1, 1, 1, 1])
+output_weights = np.array([2, 2])
+output_bias = 0
+
+print("Initial hidden weights:")
+print(hidden_weights)
+print("Initial hidden biases:")
+print(hidden_bias)
+print("Initial output weights:")
+print(output_weights)
+print("Initial output biases:")
+print(output_bias)
+hidden_layer_activation1 = []
+hidden_layer_activation2 = []
+for i in range(len(inputs)):
+    print("Input combination", i + 1)
+    hidden_layer1 = inputs[i][0] * hidden_weights[0][0] + inputs[i][1] * hidden_weights[0][1] + hidden_bias[0]
+    print("Hidden layer neuron 1:", hidden_layer1)
+    hidden_1 = threshold(hidden_layer1)
+    hidden_layer_activation1.append(hidden_1)
+    print("After threshold:", hidden_layer_activation1)
+    hidden_layer2 = inputs[i][0] * hidden_weights[1][0] + inputs[i][1] * hidden_weights[1][1] + hidden_bias[1]
+    print("Hidden layer neuron 2:", hidden_layer2)
+    hidden_2 = threshold(hidden_layer2)
+    hidden_layer_activation2.append(hidden_2)
+
+print(hidden_layer_activation1)
+print(hidden_layer_activation2)
+outputs=[]
+
+for i in range(len(hidden_layer_activation1)):
+    print("Hidden combination", i + 1)
+    output_layer = hidden_layer_activation1[i] * output_weights[0] + hidden_layer_activation2[i] * output_weights[1] + output_bias
+    print("Output layer :", output_layer)
+    output = threshold(output_layer)
+    outputs.append(output)
+print("Output:", outputs)
+

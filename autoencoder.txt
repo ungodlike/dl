@@ -1,0 +1,88 @@
+######### Sparse encoder ##########
+from keras.layers import Dense
+from keras import Input,Model
+from keras.datasets import mnist
+from keras.backend import int_shape
+import numpy as np
+import matplotlib.pyplot as plt
+from keras import regularizers
+
+input_img = Input(shape=(784,))
+encoding_dim = 32
+encoded = Dense(encoding_dim,activation = 'relu',activity_regularizer=regularizers.l1(10e-5))(input_img)
+decoded = Dense(784,activation = 'sigmoid')(encoded)
+
+autoencoder = Model(input_img,decoded)
+encoder = Model(input_img,encoded)
+autoencoder.summary()
+
+#Data preprocessing
+(x_train,y_train),(x_test,y_test) = mnist.load_data()
+x_train = x_train.astype('float32')/255
+x_test = x_test.astype('float32')/255
+
+x_train = x_train.reshape(len(x_train),np.prod(x_train.shape[1:]))
+x_test = x_test.reshape(len(x_test),np.prod(x_test.shape[1:]))
+
+#training mnist dataset
+autoencoder.compile(optimizer='adam', loss = 'binary_crossentropy')
+autoencoder.fit(x_train,x_train,epochs = 10,batch_size = 256, shuffle=True, validation_data=(x_test,x_test))
+
+encoded_img = encoder.predict(x_test)
+predicted_img = autoencoder.predict(x_test)
+
+plt.figure(figsize=(20,4))
+
+for i in range(5):
+  ax = plt.subplot(2,5,i+1)
+  plt.imshow(x_test[i].reshape(28,28))
+  plt.gray()
+
+  ax = plt.subplot(2,5,i+1+5)
+  plt.imshow(predicted_img[i].reshape(28,28))
+  plt.gray()
+
+
+########### Dense Encoder #################
+from keras.layers import Dense
+from keras import Input,Model
+from keras.datasets import mnist
+from keras.backend import int_shape
+import numpy as np
+import matplotlib.pyplot as plt
+from keras import regularizers
+
+
+(x_train,y_train),(x_test,y_test) = mnist.load_data()
+x_train = x_train.astype('float32')/255
+x_test = x_test.astype('float32')/255
+
+x_train = x_train.reshape(len(x_train),np.prod(x_train.shape[1:]))
+x_test = x_test.reshape(len(x_test),np.prod(x_test.shape[1:]))
+#autoencoder.compile(optimizer='adam', loss = 'binary_crossentropy')
+#autoencoder.fit(x_train,x_train,epochs = 10,batch_size = 256, shuffle=True, validation_data=(x_test,x_test))
+
+encoded_img = encoder.predict(x_test)
+predicted_img = autoencoder.predict(x_test)
+
+plt.figure(figsize=(20,4))
+
+for i in range(5):
+  ax = plt.subplot(3,5,i+1)
+  plt.imshow(x_test[i].reshape(28,28))
+  plt.gray()
+
+  ax = plt.subplot(2,5,i+1+5)
+  plt.imshow(predicted_img[i].reshape(6,6))
+  plt.gray()
+
+
+
+
+
+
+
+
+
+
+
